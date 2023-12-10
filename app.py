@@ -16,8 +16,14 @@ cash_flow_df = pd.read_csv('Cisco_data/cashflow.csv', index_col=0)
 cash_flow_df = cash_flow_df.transpose() 
 stocks_history_df = pd.read_csv('Cisco_data/history.csv', index_col=0, parse_dates=True)
 income_statement_df = pd.read_csv('Cisco_data/income_stmt.csv', index_col=0)
-major_holders_df = pd.read_csv('Cisco_data/major_holders.csv', index_col=0)
 
+shareholder_data = pd.read_csv('Cisco_data/major_holders.csv')
+shareholder_data['%'] = shareholder_data['%'].str.rstrip(' %').astype('float')
+# shareholder_data['Equities'] = pd.to_numeric(shareholder_data['Equities'].str.replace(',', ''), errors='coerce')
+# shareholder_data['%'] = pd.to_numeric(shareholder_data['%'].str.replace('%', ''), errors='coerce')
+
+
+region_sales_df = pd.read_csv('Cisco_data/region.csv')
 px.defaults.template = "ggplot2"
 
 external_css = ["https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css", ]
@@ -27,7 +33,7 @@ server = app.server  # Added in for Cloud Run compatibility
 
 # Define app layout
 app.layout = html.Div(className='text-dark text-center fw-bold fs-1', children=[
-    html.H1(children='Financial Dashboard'),
+    html.H1(children='CISCO Financial Performance Dashboard'),
 
     html.Div(className='container-fluid', children=[
         # First Row
@@ -88,7 +94,7 @@ app.layout = html.Div(className='text-dark text-center fw-bold fs-1', children=[
         # Third Row
         html.Div(className='row', children=[
             # First Column
-            html.Div(className='col-md-6', children=[
+            html.Div(className='col-md-4', children=[
                 dcc.Graph(
                     id='stocks-history-plot',
                     figure=go.Figure(data=[go.Candlestick(x=stocks_history_df.index,
@@ -99,22 +105,22 @@ app.layout = html.Div(className='text-dark text-center fw-bold fs-1', children=[
                                     layout={'title': 'Stocks History'})
                 )
             ]),
-            # Second Column
-            html.Div(className='col-md-6', children=[
+            html.Div(className='col-md-4', children=[
+
                 dcc.Graph(
-                    id='major-holders-pie-chart',
-                    figure=px.pie(
-        major_holders_df,
-        names=major_holders_df.index,
-        values=major_holders_df['1'],
-        title='Major Holders',
-        labels={'index': 'Legend'},
-    )
-                )
+                    id='region-pie-chart',
+                    figure=px.pie(region_sales_df, names='Region', values='2022', title='Region Sales Distribution (2022)')
+                ),
+            ]),
+            html.Div(className='col-md-4', children=[
+                dcc.Graph(
+                id='shareholder-pie-chart',
+                figure=px.pie(shareholder_data, names='Name', values='%', title='Shareholder Equities')
+             ),
             ]),
         ]),
     ]),
 ])
 # Run the app
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=True, port=int(os.environ.get('PORT', 8080)))
